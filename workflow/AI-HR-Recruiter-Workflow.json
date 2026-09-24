@@ -1,0 +1,402 @@
+{
+  "name": "AI-HR-Recruiter-Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "Lamaran pekerjaan"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "eb09cd10-699f-4a9b-af68-6f73195cd91e",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gWRaP8xfSRfhJ4GT",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Anda adalah sistem ekstraksi data CV untuk database rekrutmen.\n\nAmbil informasi berikut dari teks CV yang diberikan:\n\n1. Nama Lengkap\n2. Email\n3. Nomor HP\n4. Pendidikan Terakhir\n5. Keterampilan\n6. Ringkasan Pengalaman\n\nTeks CV:\n{{ $json.text }}\n\nKembalikan HANYA dalam format JSON berikut:\n\n{\n  \"nama_lengkap\": \"\",\n  \"email\": \"\",\n  \"nomor_hp\": \"\",\n  \"pendidikan_terakhir\": \"\",\n  \"keterampilan\": \"\",\n  \"ringkasan_pengalaman\": \"\"\n}\n\nAturan:\n- Jangan menambahkan markdown.\n- Jangan menggunakan ```json.\n- Jangan membuat informasi yang tidak terdapat dalam CV.\n- Jika informasi tidak ditemukan, isi dengan \"Tidak ditemukan\".\n- Keterampilan boleh berisi beberapa keterampilan yang dipisahkan koma.\n- Ringkasan pengalaman harus berupa kalimat yang menjelaskan pengalaman kerja atau pengalaman profesional pelamar.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        416,
+        0
+      ],
+      "id": "83347314-bb16-49aa-bb59-d3a2132ee1a3",
+      "name": "Basic LLM Chain1",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// Ambil output dari LLM\nlet raw = input.output || input.text || input.response || input.content || \"\";\n\n// Pastikan berupa string\nif (typeof raw !== \"string\") {\n  raw = JSON.stringify(raw);\n}\n\n// Bersihkan markdown JSON\nraw = raw\n  .replace(/```json/gi, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\n// Ambil bagian JSON\nconst start = raw.indexOf(\"{\");\nconst end = raw.lastIndexOf(\"}\");\n\nif (start === -1 || end === -1) {\n  return [{\n    json: {\n      nama_lengkap: \"Tidak ditemukan\",\n      email: \"Tidak ditemukan\",\n      nomor_hp: \"Tidak ditemukan\",\n      pendidikan_terakhir: \"Tidak ditemukan\",\n      keterampilan: \"Tidak ditemukan\",\n      ringkasan_pengalaman: \"Tidak ditemukan\",\n      error: \"Output LLM bukan JSON\"\n    }\n  }];\n}\n\ntry {\n  const data = JSON.parse(raw.substring(start, end + 1));\n\n  return [{\n    json: {\n      nama_lengkap: data.nama_lengkap || \"Tidak ditemukan\",\n      email: data.email || \"Tidak ditemukan\",\n      nomor_hp: data.nomor_hp || \"Tidak ditemukan\",\n      pendidikan_terakhir: data.pendidikan_terakhir || \"Tidak ditemukan\",\n      keterampilan: data.keterampilan || \"Tidak ditemukan\",\n      ringkasan_pengalaman: data.ringkasan_pengalaman || \"Tidak ditemukan\"\n    }\n  }];\n\n} catch (error) {\n\n  return [{\n    json: {\n      nama_lengkap: \"Tidak ditemukan\",\n      email: \"Tidak ditemukan\",\n      nomor_hp: \"Tidak ditemukan\",\n      pendidikan_terakhir: \"Tidak ditemukan\",\n      keterampilan: \"Tidak ditemukan\",\n      ringkasan_pengalaman: \"Tidak ditemukan\",\n      error: error.message\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "c68c7c7f-16e2-45a0-9c5f-edd6951ca982",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1QMF5V4aIv_bB5Y5Gvy0YUL-WPevRwaRPbw4tg9SAPWw",
+          "mode": "list",
+          "cachedResultName": "Database Rekrutmen HR",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QMF5V4aIv_bB5Y5Gvy0YUL-WPevRwaRPbw4tg9SAPWw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QMF5V4aIv_bB5Y5Gvy0YUL-WPevRwaRPbw4tg9SAPWw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nama Lengkap": "={{ $json.nama_lengkap }}",
+            "Email": "={{ $json.email }}",
+            "Nomor HP": "={{ $json.nomor_hp }}",
+            "Pendidikan Terakhir": "={{ $json.pendidikan_terakhir }}",
+            "Keterampilan": "={{ $json.keterampilan }}",
+            "Ringkasan Pengalaman": "={{ $json.ringkasan_pengalaman }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Nama Lengkap",
+              "displayName": "Nama Lengkap",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nomor HP",
+              "displayName": "Nomor HP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Pendidikan Terakhir",
+              "displayName": "Pendidikan Terakhir",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Keterampilan",
+              "displayName": "Keterampilan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ringkasan Pengalaman",
+              "displayName": "Ringkasan Pengalaman",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        992,
+        0
+      ],
+      "id": "50bf3e0e-d2be-4d56-aa98-bb51bf453cf8",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AfXmWJjnEkgKCVCJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6194815959",
+        "text": "=📩 ADA PELAMAR BARU!\n\n👤 Nama:\n{{ $('Append row in sheet').item.json['Nama Lengkap'] }}\n\n📧 Email:\n{{ $('Append row in sheet').item.json['Email'] }}\n\n📱 Nomor HP:\n{{ $('Append row in sheet').item.json['Nomor HP'] }}\n\n🎓 Pendidikan:\n{{ $('Append row in sheet').item.json['Pendidikan Terakhir'] }}\n\n🛠️ Keterampilan:\n{{ $('Append row in sheet').item.json['Keterampilan'] }}\n\n💼 Ringkasan Pengalaman:\n{{ $('Append row in sheet').item.json['Ringkasan Pengalaman'] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1824,
+        0
+      ],
+      "id": "3bab4995-45bd-4c82-92e2-31bc5f3b15c4",
+      "name": "Send a text message",
+      "webhookId": "1527c189-a80b-44bd-8b9a-e76202423057",
+      "credentials": {
+        "telegramApi": {
+          "id": "GC6WFI9qTBqxc7vr",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "9170fc4d-fad8-425d-8a4c-f0ce918a2225",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        240
+      ],
+      "id": "080f369a-8b18-4368-ad0b-e698faa33c4d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "1wptJWzq8KqJxIR8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Code in JavaScript').item.json.email }}",
+        "subject": "=Undangan Wawancara Kerja - {{ $('Code in JavaScript').item.json.nama_lengkap }}",
+        "emailType": "text",
+        "message": "=Halo {{ $('Code in JavaScript').item.json.nama_lengkap }},\n\nSelamat! Berdasarkan hasil peninjauan CV Kamu, kami mengundang Kamu untuk mengikuti tahap Wawancara Kerja.\n\nBerikut detail jadwal wawancara Kamu:\n📅 Tanggal: {{ $now.plus({ days: 1 }).setLocale('id').format('cccc, dd MMMM yyyy') }}\n⏰ Waktu: 10:00 WIB\n📍 Media: Google Meet (Link tautan sudah disertakan di undangan Google Calendar)\n\nMohon konfirmasi kehadiran Kamu dengan membalas email ini.\n\nTerima kasih,\nTim HR Recruiter",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        144
+      ],
+      "id": "5b698726-1257-4359-a4a7-61a1473f648f",
+      "name": "Send a message",
+      "webhookId": "4c847673-de36-4c34-9290-cae2b116c7c3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gWRaP8xfSRfhJ4GT",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "annajwaalhabsyi@gmail.com",
+          "mode": "list",
+          "cachedResultName": "annajwaalhabsyi@gmail.com"
+        },
+        "start": "={{ $now.plus({ days: 1 }).set({ hour: 10, minute: 0 }).format(\"yyyy-MM-dd'T'HH:mm:ss\") }}",
+        "end": "={{ $now.plus({ days: 1 }).set({ hour: 11, minute: 0 }).format(\"yyyy-MM-dd'T'HH:mm:ss\") }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $('Code in JavaScript').item.json.email }}"
+          ],
+          "conferenceDataUi": {
+            "conferenceDataValues": {
+              "conferenceSolution": "hangoutsMeet"
+            }
+          },
+          "description": "=Wawancara posisi kandidat {{ $('Code in JavaScript').item.json.nama_lengkap }}. Nomor HP: {{ $('Code in JavaScript').item.json.nomor_hp }}",
+          "sendUpdates": "all",
+          "summary": "=Wawancara Kerja - {{ $('Code in JavaScript').item.json.nama_lengkap }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1216,
+        0
+      ],
+      "id": "7e414fc4-a50c-4472-986f-b43b91f722e4",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "KHEeZxjQnOAdZ1KV",
+          "name": "Google Calendar account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c3023d92-50be-4613-8dbc-96c674285bc9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4125b122874b0a316973be9e0366f2138cd394aa73d1bc2a1c7c258c2ec99b11"
+  },
+  "nodeGroups": [],
+  "id": "WYxDKd4Wa30w4Uvo",
+  "tags": []
+}
