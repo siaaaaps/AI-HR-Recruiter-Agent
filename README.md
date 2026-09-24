@@ -235,7 +235,7 @@ Mohon konfirmasi kehadiran Kamu dengan membalas email ini.
 Terima kasih,  
 Tim HR Recruiter
 
-## 7️⃣ Send a text message (Telegram) ✉️
+## 9️⃣ Send a text message (Telegram) ✉️
 
 > **Goal:** Mengirim pesan notifikasi ringkasan kandidat baru secara otomatis ke chat Telegram HR.
 
